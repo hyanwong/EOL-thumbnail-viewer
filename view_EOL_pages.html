@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>View EOL thumbnails</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<style type="text/css">
+    html { height: 100%;}
+    body { height: 100%;}
+    #mainlist {height: 50%; overflow:scroll}
+    #mainlist li {display: table; float: left; text-align: center; margin: 5px}
+    #mainlist li a {display: table-cell; vertical-align: middle; height: 130px; width: 130px; border: solid 2px red; background-repeat: no-repeat}
+
+    #mainlist li a.low_rating {border-style: none;}
+    #mainlist li a.no_rating {border-style: dashed;}
+    #mainlist li a.high_rating {border-style: solid;}
+    
+    #mainlist li a.Trusted {border-color: black;}
+    #mainlist li a.Unreviewed {border-color: lightgrey;}
+    
+}
+</style>
+<script>
+
+function getURLParameters() {
+  // This function is anonymous, is executed immediately and 
+  // the return value is assigned to QueryString!
+  var query_string = {};
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+  for (var i=0;i<vars.length;i++) {
+    var pair = vars[i].split("=");
+        // If first entry with this name
+    if (typeof query_string[pair[0]] === "undefined") {
+      query_string[pair[0]] = decodeURIComponent(pair[1]);
+        // If second entry with this name
+    } else if (typeof query_string[pair[0]] === "string") {
+      var arr = [ query_string[pair[0]],decodeURIComponent(pair[1]) ];
+      query_string[pair[0]] = arr;
+        // If third or later entry with this name
+    } else {
+      query_string[pair[0]].push(decodeURIComponent(pair[1]));
+    }
+  } 
+    return query_string;
+}
+
+window.onload = function() {
+    dobj_arr = getURLParameters().doID;
+    if (dobj_arr && dobj_arr.length) load_EolImages();
+}
+
+load_EolImages = function () {
+    $('#mainlist').html("");
+    
+    for(var i=0, len=dobj_arr.length; i < len; i++)
+        API_call(i);
+};
+
+function reload(id) {
+    API_call(id)
+}
+
+function API_call(i) {
+    if($("#id" + i).length)
+        $("#id" + i).html("Loading page ID " + dobj_arr[i] + "...");
+    var url = "http://eol.org/api/pages/1.0/" + dobj_arr[i] + ".json?images=1&videos=0&sounds=0&maps=0&text=0&iucn=false&subjects=overview&licenses=pd%7Ccc-by%7Ccc-by-sa&details=true&common_names=false&synonyms=false&references=false&vetted=2&cache_ttl=200&unique="+Date.now();
+    xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function(n) {
+        return function() {
+            if (this.readyState == 4 && this.status == 200) {
+                make_thumbnail(JSON.parse(this.responseText),n);
+        }
+    }}(i);
+    xmlHttp.open("GET", url, true);
+    xmlHttp.send();
+}
+
+function add_or_change_item(n, rating, href, text) {
+    var target = $("#id" + n);
+    if (target.length) {
+        target.prop("href", href)
+        target.html(text)
+    } else {
+        var item_to_add = '<li data-rating="' + rating + '"><a id="id' + n + '" href = "' + href + '" target="EOLiframe">' + text + '</a></li>'
+        var better = $('#mainlist li').filter(function(index) {return(parseFloat($(this).attr('data-rating')) > parseFloat(rating))})
+        if (better.length) {
+           better.last().after(item_to_add);
+        } else
+            $('#mainlist').prepend(item_to_add);
+        target = $("#id" + n);
+    }
+    return target;
+}
+
+function make_thumbnail(arr,n) {
+    if (arr.identifier) {
+        var d_obj = arr.dataObjects;
+        if (d_obj.length) {
+            d_obj = d_obj[0]; //take the first returned data object as the best
+            target = add_or_change_item(n, d_obj.dataRating || 0, 'http://eol.org/data_objects/' + d_obj.dataObjectVersionID + '#main', '')
+            var img_orig = d_obj.eolMediaURL;
+            if (img_orig)
+                target.css('backgroundImage', "url('" + img_orig.replace(/orig.jpg$/, '130_130.jpg') + "')");
+            target.prop('title', "EoL page: " + arr.identifier + ", data_obj: " + arr.identifier + ", rating=" + d_obj.dataRating); 
+            target.removeClass()
+            target.click(function() {document.getElementById("EOLiframe").onload = function() {reload(n)}; return true;});
+            if (d_obj.dataRating > 2.5000001) {
+                target.addClass('high_rating')
+            } else if (d_obj.dataRating < 2.49999999) {
+                target.addClass('low_rating')
+            } else {
+                target.addClass('no_rating')
+            }
+            target.addClass(d_obj.vettedStatus)
+            target.html('')
+        } else {
+           add_or_change_item(n, -1, "http://eol.org/pages/" + arr.identifier + "/media", 'No usable image for EoL page ' + arr.identifier);
+        }
+    } else {
+        add_or_change_item(n, -1, '', 'Error getting EoL page data for' + dobj_arr[n]);
+    }
+}
+
+/* nb when iframe is reloaded (i.e. on crop), we should update the appropriate thumbnail */
+
+</script>
+</head>
+<body>
+<ol id="mainlist">
+<li>This requires javascript, and a set of DOids. <a href="?doID=1179566&doID=1180006&doID=7252447&doID=1178075&doID=1178074&doID=1927626&doID=1923969&doID=1923964&doID=1923965&doID=1926620&doID=963795&doID=462104&doID=1178764&doID=791223&doID=323911&doID=328592&doID=328023&doID=1178252&doID=1025097&doID=1024933&doID=4363218&doID=915369&doID=915400&doID=338733&doID=20404124&doID=1922155&doID=328477&doID=328475&doID=1049285&doID=1049537&doID=289798&doID=1048803&doID=1055746&doID=328568&doID=1923497&doID=7215319&doID=7215320&doID=323835&doID=1001185&doID=1038742&doID=795219&doID=790705&doID=1047999&doID=1047994&doID=1047991&doID=999177&doID=1177811&doID=1177857&doID=1177868&doID=1177905&doID=1177901&doID=915444&doID=795739&doID=1049713&doID=1049716&doID=1178700&doID=290141&doID=1922150&doID=1179518&doID=1049010&doID=1921920&doID=129476&doID=914951&doID=1048643&doID=1049405&doID=1049408&doID=1049407&doID=10554560&doID=1055780&doID=289876&doID=312103&doID=327981&doID=312105&doID=327987&doID=312032&doID=327986&doID=328740&doID=328580&doID=327553&doID=1048722&doID=914457&doID=1048828&doID=1048773&doID=1048705&doID=914456&doID=1065075&doID=1038521&doID=327180&doID=790899&doID=223360&doID=1177534&doID=1920002&doID=1177892&doID=327660&doID=914157&doID=129579&doID=311917&doID=328459&doID=1180179&doID=323859&doID=1921136&doID=311203&doID=340129&doID=1064963&doID=1047235&doID=1049812&doID=1178239&doID=1037710&doID=1053450&doID=963568&doID=963567&doID=1925885&doID=1925895&doID=1925892&doID=1925893&doID=1925887&doID=1048678&doID=1177864&doID=1048723&doID=1048824&doID=1048823&doID=1065076&doID=308534&doID=328660&doID=308531&doID=791049&doID=1177887&doID=1920733&doID=452887&doID=223757&doID=457388&doID=126949&doID=10645286&doID=1926326&doID=1052721&doID=1179923&doID=1179046&doID=1179322&doID=328711&doID=915851&doID=1049495&doID=794417&doID=791985&doID=455439&doID=1923752&doID=1923748&doID=310823&doID=1010635&doID=1924957&doID=206816&doID=1049976&doID=1049962&doID=1049984&doID=1049985&doID=1049964&doID=1049968&doID=1925218&doID=789773&doID=795217&doID=795218&doID=1055873&doID=791489&doID=1926255&doID=795271&doID=453977&doID=1179988&doID=1179933&doID=1178898&doID=1178727&doID=1048806&doID=7234973&doID=1049736&doID=1049871&doID=1049798&doID=985684&doID=311902&doID=311901&doID=312858&doID=327858&doID=327857&doID=1922044&doID=1056271&doID=1048532&doID=1047356&doID=1048467&doID=1048466&doID=912807&doID=914434&doID=454566&doID=3101434&doID=1049416&doID=328264&doID=327615&doID=327587&doID=218711&doID=988278&doID=913261&doID=915583&doID=1049288&doID=915410&doID=915553&doID=915545&doID=963760&doID=963761&doID=963762&doID=1923339&doID=459023&doID=1921924&doID=1921665&doID=1926273&doID=1920703&doID=1927385&doID=290164&doID=1922437&doID=461097&doID=461099&doID=1177980&doID=1177994&doID=795946&doID=1178469&doID=1048455&doID=326557&doID=1048446&doID=1049088&doID=1049100&doID=1048452&doID=128424&doID=795278&doID=795276&doID=454963&doID=460890&doID=1049084&doID=327224&doID=328113&doID=328112&doID=327314&doID=327311&doID=323427&doID=323425&doID=1922119&doID=1180092&doID=1180112&doID=1179135&doID=454056&doID=454037&doID=2819343&doID=1927361&doID=914570&doID=328451&doID=328434&doID=1179876&doID=1179874&doID=1179872&doID=328456&doID=328442&doID=311498&doID=1038780&doID=1038781&doID=1038786&doID=311497&doID=1180156&doID=793342&doID=793314&doID=1178879&doID=1178785&doID=311910&doID=328674&doID=328606&doID=328673&doID=351020&doID=133201&doID=311173&doID=1056072&doID=1178610&doID=1178633&doID=1178601&doID=311201&doID=128465&doID=313883&doID=311986&doID=129527&doID=326359&doID=1053500&doID=127471&doID=1179537&doID=1049557&doID=1049963&doID=1064941&doID=321140&doID=323827&doID=323826&doID=128858&doID=328101&doID=1053882&doID=328094&doID=1053879&doID=1053881&doID=325825&doID=1926401&doID=1049348&doID=1049652&doID=207918&doID=815934&doID=790739&doID=460326&doID=1055104&doID=1049182&doID=1179216&doID=1179929&doID=1179926&doID=327333&doID=327332&doID=327330&doID=327328&doID=327327&doID=999151&doID=1038729&doID=1922123&doID=962988&doID=344585&doID=1038778&doID=1922125&doID=2867577&doID=4472392&doID=1177911&doID=311905&doID=1049279&doID=1049280&doID=1056748&doID=456702&doID=794732&doID=1178474&doID=1920682&doID=1179117&doID=1179116&doID=1049765&doID=1037792&doID=324407&doID=1178189&doID=1048755&doID=1178194&doID=1178187&doID=1178197&doID=915305&doID=915065&doID=915069&doID=1049239&doID=1047272&doID=1049700&doID=1049923&doID=1049872&doID=1180103&doID=1180100&doID=962989&doID=1922126&doID=1922115&doID=1048464&doID=1178357&doID=915156&doID=915145&doID=915155&doID=1179554&doID=1010982&doID=914711&doID=326350&doID=326354&doID=789843&doID=120488&doID=327368&doID=133148&doID=915308&doID=1048916&doID=793279&doID=460737&doID=795210&doID=1049734&doID=1049735&doID=914972&doID=328664&doID=1179965&doID=3055748&doID=1180130&doID=1049439&doID=892350&doID=663104&doID=900293&doID=892349&doID=915310&doID=915311&doID=1178423&doID=1179531&doID=327909&doID=323519&doID=915409&doID=308480&doID=4446188&doID=4453194&doID=4453193&doID=311593&doID=1177866&doID=311738&doID=1049528&doID=1049565&doID=1049365&doID=1049474&doID=1049566&doID=1049258&doID=795715&doID=452875&doID=794974&doID=1056417&doID=793415&doID=1926719&doID=1923847&doID=1923735&doID=1923951&doID=1178105&doID=1177907&doID=454628&doID=794985&doID=794730&doID=308477&doID=126946&doID=1049611&doID=1049617&doID=1178965&doID=4456145&doID=1179922&doID=1048020&doID=1177763&doID=1178222&doID=1177787&doID=327563&doID=289553&doID=289594&doID=289549&doID=327582&doID=1178691&doID=1048751&doID=1178571&doID=1048848&doID=327985&doID=311622&doID=1010652&doID=1056916&doID=1177549&doID=1177551&doID=310939&doID=122755&doID=28262125&doID=1065117&doID=1048598&doID=1177608&doID=1177610&doID=289685&doID=325803&" style="background-color: #cccccc;">Try this link</a></li>
+</ol>
+<p style="clear: both">Grey border = Unreviewed. No border = rating &lt; avg. Dotted border = avg or unrated. Solid border = rating &gt; avg. EoL page below (you may need to log in)</p>
+Or make a new one with
+<pre>cut -f 3 treetaxon_file_with_appended_imageIDs.txt  | perl -e 'print "file:///Users/yan/Documents/Research/OneZoom/OneZoomTouch/server_scripts/utilities/view_EOL_pages.html?"; for(<>;$i<500;$i++) {$_=<>; chomp; print "doID=$_&" if /^\d+$/}'
+</pre>
+<iframe id='EOLiframe' width="100%" height="400px" src="http://eol.org/login" name="EOLiframe" onLoad=""></iframe>
+</body>
+</html>
