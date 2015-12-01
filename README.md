@@ -1,5 +1,5 @@
 # EOL-thumbnail-viewer
-A single page that shows a set of 'best' (Encyclopedia of Life)[http://www.eol.org] thumbnails for a set of EoL page IDs
+A single page that shows a set of 'best' [Encyclopedia of Life](http://www.eol.org) thumbnails for a set of EoL page IDs
 
 Download the html file and open it in a browser (I use Safari for OS X)
 
